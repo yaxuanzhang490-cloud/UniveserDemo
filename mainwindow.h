@@ -7,6 +7,7 @@
 #include <QPoint>
 #include <QTimer>
 #include <QPixmap>
+#include <QString>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -47,6 +48,15 @@ private:
         int visibility;     // 暴露度
         int aggression;     // 扩张欲 / 侵略性
         int military;       // 军事实力
+        // 🌍 文明名称
+        QString name;
+
+        // 🌌 文明类型
+        QString type;
+        // 🌍 政治制度
+        QString politics;
+        QString faction;   // 阵营
+        QVector<int> relations;   // 与其它文明关系值
     };
 
     struct ResourcePlanet
@@ -62,5 +72,18 @@ private:
     int selectedIndex = -1;  // ⭐ 当前选中的文明
     QTimer *timer;
     QPixmap background;
+    // =========================
+    // ⚔️ 战争激光
+    // =========================
+
+    struct Laser
+    {
+        QPoint start;
+        QPoint end;
+
+        int life;   // 激光剩余时间
+    };
+
+    QVector<Laser> lasers;
 };
 #endif // MAINWINDOW_H

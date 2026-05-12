@@ -42,7 +42,146 @@ MainWindow::MainWindow(QWidget *parent)
 
         c.military = QRandomGenerator::global()->bounded(20, 100);
 
+        // =========================
+        // 🌍 文明名称生成
+        // =========================
+
+        QString prefixes[] =
+            {
+                "Nova",
+                "Eden",
+                "Orion",
+                "Titan",
+                "Astra",
+                "Zenith",
+                "Solar",
+                "Nebula"
+            };
+
+        QString suffixes[] =
+            {
+                "Union",
+                "Empire",
+                "Alliance",
+                "Federation",
+                "Collective",
+                "Dominion"
+            };
+
+        QString prefix =
+            prefixes[
+                QRandomGenerator::global()->bounded(8)
+        ];
+
+        QString suffix =
+            suffixes[
+                QRandomGenerator::global()->bounded(6)
+        ];
+
+        c.name = prefix + " " + suffix;
+
+        // =========================
+        // 🌌 文明类型
+        // =========================
+
+        if (c.aggression > 70)
+        {
+            c.type = "Aggressive";
+        }
+        else if (c.visibility < 30)
+        {
+            c.type = "Hidden";
+        }
+        else if (c.stability > 80)
+        {
+            c.type = "Peaceful";
+        }
+        else
+        {
+            c.type = "Balanced";
+        }
+        // =========================
+        // 🏛️ 政治制度生成
+        // =========================
+
+        if (c.military > 120 &&
+            c.aggression > 70)
+        {
+            c.politics =
+                "Military Dictatorship";
+        }
+        else if (c.technology > 7)
+        {
+            c.politics =
+                "Technocracy";
+        }
+        else if (c.stability > 80 &&
+                 c.aggression < 30)
+        {
+            c.politics =
+                "Peace Republic";
+        }
+        else if (c.visibility < 25)
+        {
+            c.politics =
+                "Hidden Civilization";
+        }
+        else if (c.energy > 130)
+        {
+            c.politics =
+                "Resource Empire";
+        }
+        else if (c.stability < 30)
+        {
+            c.politics =
+                "Chaos Tribe";
+        }
+        else
+        {
+            c.politics =
+                "Balanced Federation";
+        }
+        // =========================
+        // 🌌 文明阵营
+        // =========================
+
+        QString factions[] =
+            {
+                "Blue Alliance",
+                "Red Empire",
+                "Green Union",
+                "Golden Federation"
+            };
+
+        c.faction =
+            factions[
+                QRandomGenerator::global()->bounded(4)
+        ];
+
         civilizations.append(c);
+        // =========================
+        // 🌌 初始化外交关系
+        // =========================
+
+        for (int i = 0; i < civilizations.size(); i++)
+        {
+            civilizations[i].relations.resize(
+                civilizations.size());
+
+            for (int j = 0; j < civilizations.size(); j++)
+            {
+                if (i == j)
+                {
+                    civilizations[i].relations[j] = 100;
+                }
+                else
+                {
+                    civilizations[i].relations[j] =
+                        QRandomGenerator::global()
+                            ->bounded(-30, 31);
+                }
+            }
+        }
     }
 
     // =========================
@@ -111,6 +250,24 @@ MainWindow::MainWindow(QWidget *parent)
                     nearestDist = dist2;
 
                     targetPos = p.pos;
+                }
+            }
+            // =========================
+            // 🌍 资源星球自动恢复
+            // =========================
+
+            for (ResourcePlanet &p : planets)
+            {
+                // 小概率恢复资源
+                if (QRandomGenerator::global()->bounded(4) == 0)
+                {
+                    p.energy += 2;
+
+                    // 资源上限
+                    if (p.energy > 400)
+                    {
+                        p.energy = 400;
+                    }
                 }
             }
 
@@ -238,7 +395,10 @@ MainWindow::MainWindow(QWidget *parent)
 
             c.pos += QPoint(dx, dy);
             // 🌍 移动消耗能源
-            c.energy -= 1;
+            if (QRandomGenerator::global()->bounded(3) == 0)
+            {
+                c.energy--;
+            }
 
             // 🌍 缓慢获取能源
             if (QRandomGenerator::global()->bounded(5) == 0)
@@ -303,16 +463,18 @@ MainWindow::MainWindow(QWidget *parent)
             // 🌍 文明年龄增长
             c.age++;
             // =========================
-            // 🌱 文明自然恢复
+            // 🌱 文明自然恢复系统
             // =========================
 
             if (c.energy > 80 &&
                 c.stability > 60)
             {
-                if (QRandomGenerator::global()->bounded(5) == 0)
+                // 小概率恢复生命
+                if (QRandomGenerator::global()->bounded(8) == 0)
                 {
                     c.life++;
 
+                    // 限制生命上限
                     if (c.life > 150)
                     {
                         c.life = 150;
@@ -357,6 +519,100 @@ MainWindow::MainWindow(QWidget *parent)
         for (int i = 0; i < civilizations.size(); i++)
         {
             Civilization &c = civilizations[i];  // ⭐⭐⭐ 关键：定义 c
+            // =========================
+            // 🏛️ 政治制度效果
+            // =========================
+
+            // ⚔️ 军政府
+            if (c.politics == "Military Dictatorship")
+            {
+                // 更容易扩张
+                c.aggression += 1;
+
+                // 军事增长更快
+                if (QRandomGenerator::global()->bounded(8) == 0)
+                {
+                    c.military += 1;
+                }
+
+                // 稳定度缓慢下降
+                if (QRandomGenerator::global()->bounded(10) == 0)
+                {
+                    c.stability--;
+                }
+            }
+
+            // 🧠 技术治国
+            else if (c.politics == "Technocracy")
+            {
+                // 科技发展更快
+                if (QRandomGenerator::global()->bounded(20) == 0)
+                {
+                    c.technology++;
+                }
+
+                // 更低侵略性
+                if (c.aggression > 20)
+                {
+                    c.aggression--;
+                }
+            }
+
+            // ☮️ 和平共和国
+            else if (c.politics == "Peace Republic")
+            {
+                // 社会更稳定
+                if (QRandomGenerator::global()->bounded(5) == 0)
+                {
+                    c.stability++;
+                }
+
+                // 缓慢恢复生命
+                if (QRandomGenerator::global()->bounded(8) == 0)
+                {
+                    c.life++;
+                }
+
+                // 不喜欢战争
+                if (c.aggression > 10)
+                {
+                    c.aggression--;
+                }
+            }
+
+            // 🌑 隐藏文明
+            else if (c.politics == "Hidden Civilization")
+            {
+                // 更难被发现
+                if (c.visibility > 5)
+                {
+                    c.visibility--;
+                }
+
+                // 科技缓慢提升
+                if (QRandomGenerator::global()->bounded(30) == 0)
+                {
+                    c.technology++;
+                }
+            }
+            // =========================
+            // 🌌 属性限制
+            // =========================
+
+            if (c.aggression > 100) c.aggression = 100;
+            if (c.aggression < 0) c.aggression = 0;
+
+            if (c.stability > 100) c.stability = 100;
+            if (c.stability < 0) c.stability = 0;
+
+            if (c.visibility > 100) c.visibility = 100;
+            if (c.visibility < 0) c.visibility = 0;
+
+            if (c.technology > 10) c.technology = 10;
+
+            if (c.life > 200) c.life = 200;
+
+            if (c.military > 300) c.military = 300;
             for (int j = i + 1; j < civilizations.size(); j++)
             {
                 Civilization &a = civilizations[i];
@@ -432,6 +688,28 @@ MainWindow::MainWindow(QWidget *parent)
                          - a.stability / 3
                          - b.stability / 3);
 
+                    int relation =
+                        a.relations[j];
+
+                    if (relation > 40)
+                    {
+                        attackChance -= 40;
+                    }
+                    else if (relation < -40)
+                    {
+                        attackChance += 40;
+                    }
+
+                    if (attackChance < 5)
+                    {
+                        attackChance = 5;
+                    }
+
+                    if (attackChance > 95)
+                    {
+                        attackChance = 95;
+                    }
+
                     if (QRandomGenerator::global()->bounded(100)
                         < attackChance)
                     {
@@ -459,11 +737,26 @@ MainWindow::MainWindow(QWidget *parent)
                     {
                         // a 获胜
 
-                        int damage = (powerA - powerB) /20;
+                        int damage = (powerA - powerB) /25;
 
-                        if (damage < 2) damage = 2;
+                        if (damage < 1) damage = 1;
 
                         b.life -= damage;
+                        a.relations[j] -= 15;
+                        b.relations[i] -= 15;
+
+                        // =========================
+                        // 🔴 创建战争激光
+                        // =========================
+
+                        Laser laser;
+
+                        laser.start = a.pos;
+                        laser.end = b.pos;
+
+                        laser.life = 6;
+
+                        lasers.append(laser);
 
                         // 🌍 战争消耗
                         a.energy -= 3;
@@ -482,6 +775,17 @@ MainWindow::MainWindow(QWidget *parent)
                         if (damage < 5) damage = 5;
 
                         a.life -= damage;
+                        a.relations[j] -= 15;
+                        b.relations[i] -= 15;
+
+                        Laser laser;
+
+                        laser.start = b.pos;
+                        laser.end = a.pos;
+
+                        laser.life = 6;
+
+                        lasers.append(laser);
 
                         b.energy -= 3;
                         b.military -= 1;
@@ -506,6 +810,115 @@ MainWindow::MainWindow(QWidget *parent)
                 child.speed = QRandomGenerator::global()->bounded(1, 6);
                 child.life = 80;
                 child.level = c.level;
+                // =========================
+                // 🌍 子文明名称
+                // =========================
+
+                QString prefixes[] =
+                    {
+                        "Nova",
+                        "Eden",
+                        "Orion",
+                        "Titan",
+                        "Astra",
+                        "Zenith",
+                        "Solar",
+                        "Nebula"
+                    };
+
+                QString suffixes[] =
+                    {
+                        "Union",
+                        "Empire",
+                        "Alliance",
+                        "Federation",
+                        "Collective",
+                        "Dominion"
+                    };
+
+                QString prefix =
+                    prefixes[
+                        QRandomGenerator::global()->bounded(8)
+                ];
+
+                QString suffix =
+                    suffixes[
+                        QRandomGenerator::global()->bounded(6)
+                ];
+
+                child.name = prefix + " " + suffix;
+                // =========================
+                // 🌌 子文明类型
+                // =========================
+
+                if (child.aggression > 70)
+                {
+                    child.type = "Aggressive";
+                }
+                else if (child.visibility < 30)
+                {
+                    child.type = "Hidden";
+                }
+                else if (child.stability > 80)
+                {
+                    child.type = "Peaceful";
+                }
+                else
+                {
+                    child.type = "Balanced";
+                }
+                // =========================
+                // 🏛️ 子文明政治制度
+                // =========================
+
+                if (child.military > 120 &&
+                    child.aggression > 70)
+                {
+                    child.politics =
+                        "Military Dictatorship";
+                }
+                else if (child.technology > 7)
+                {
+                    child.politics =
+                        "Technocracy";
+                }
+                else if (child.stability > 80 &&
+                         child.aggression < 30)
+                {
+                    child.politics =
+                        "Peace Republic";
+                }
+                else if (child.visibility < 25)
+                {
+                    child.politics =
+                        "Hidden Civilization";
+                }
+                else if (child.energy > 130)
+                {
+                    child.politics =
+                        "Resource Empire";
+                }
+                else if (child.stability < 30)
+                {
+                    child.politics =
+                        "Chaos Tribe";
+                }
+                else
+                {
+                    child.politics =
+                        "Balanced Federation";
+                }
+                child.faction = c.faction;   //子文明继承母文明阵营
+                child.relations.resize(civilizations.size() + 1);
+
+                for (int k = 0;
+                     k < child.relations.size();
+                     k++)
+                {
+                    child.relations[k] =
+                        QRandomGenerator::global()
+                            ->bounded(-20, 21);
+                }
 
                 civilizations.append(child);
             }
@@ -587,12 +1000,12 @@ MainWindow::MainWindow(QWidget *parent)
         history.append(civilizations.size());
 
         // =========================
-        // 🌌 宇宙自然诞生文明
+        // 🌌 宇宙自然生成文明
         // =========================
 
-        if (civilizations.size() < 15)
+        if (civilizations.size() < 20)
         {
-            if (QRandomGenerator::global()->bounded(100) < 5)
+            if (QRandomGenerator::global()->bounded(100) < 8)
             {
                 Civilization c;
 
@@ -607,21 +1020,151 @@ MainWindow::MainWindow(QWidget *parent)
 
                 c.population = 1000;
                 c.technology = 1;
-                c.energy = 100;
+                c.energy = 120;
                 c.age = 0;
-                c.stability = 70;
-                c.visibility = 30;
+                c.stability = 80;
+                c.visibility = 20;
                 c.aggression = 20;
-                c.military = 30;
+                c.military = 40;
+                // =========================
+                // 🌍 文明名称生成
+                // =========================
+
+                QString prefixes[] =
+                    {
+                        "Nova",
+                        "Eden",
+                        "Orion",
+                        "Titan",
+                        "Astra",
+                        "Zenith",
+                        "Solar",
+                        "Nebula"
+                    };
+
+                QString suffixes[] =
+                    {
+                        "Union",
+                        "Empire",
+                        "Alliance",
+                        "Federation",
+                        "Collective",
+                        "Dominion"
+                    };
+
+                QString prefix =
+                    prefixes[
+                        QRandomGenerator::global()->bounded(8)
+                ];
+
+                QString suffix =
+                    suffixes[
+                        QRandomGenerator::global()->bounded(6)
+                ];
+
+                c.name = prefix + " " + suffix;
+
+                // =========================
+                // 🌌 文明类型
+                // =========================
+
+                if (c.aggression > 70)
+                {
+                    c.type = "Aggressive";
+                }
+                else if (c.visibility < 30)
+                {
+                    c.type = "Hidden";
+                }
+                else if (c.stability > 80)
+                {
+                    c.type = "Peaceful";
+                }
+                else
+                {
+                    c.type = "Balanced";
+                }
+
+                // =========================
+                // 🏛️ 政治制度
+                // =========================
+
+                if (c.military > 120 &&
+                    c.aggression > 70)
+                {
+                    c.politics =
+                        "Military Dictatorship";
+                }
+                else if (c.technology > 7)
+                {
+                    c.politics =
+                        "Technocracy";
+                }
+                else if (c.stability > 80 &&
+                         c.aggression < 30)
+                {
+                    c.politics =
+                        "Peace Republic";
+                }
+                else if (c.visibility < 25)
+                {
+                    c.politics =
+                        "Hidden Civilization";
+                }
+                else if (c.energy > 130)
+                {
+                    c.politics =
+                        "Resource Empire";
+                }
+                else if (c.stability < 30)
+                {
+                    c.politics =
+                        "Chaos Tribe";
+                }
+                else
+                {
+                    c.politics =
+                        "Balanced Federation";
+                }
 
                 civilizations.append(c);
             }
         }
-
         // ⭐ 防止无限增长（最多保存300帧）
         if (history.size() > 300)
         {
             history.remove(0);
+        }
+        // =========================
+        // 🔴 更新激光寿命
+        // =========================
+        for (int i = lasers.size() - 1; i >= 0; i--)
+        {
+            lasers[i].life--;
+
+            if (lasers[i].life <= 0)
+            {
+                lasers.remove(i);
+            }
+        }
+        // =========================
+        // 🌌 同步外交关系数组大小
+        // =========================
+
+        int civCount = civilizations.size();
+
+        for (int i = 0; i < civCount; i++)
+        {
+            civilizations[i].relations.resize(civCount);
+
+            for (int j = 0; j < civCount; j++)
+            {
+                // 自己对自己
+                if (i == j)
+                {
+                    civilizations[i].relations[j] = 100;
+                }
+            }
         }
         update();
             });
@@ -724,6 +1267,23 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.drawText(graphX, graphY + 20,
                      "Population History");
 
+    // =========================
+    // 🔴 绘制战争激光
+    // =========================
+
+    for (const Laser &laser : lasers)
+    {
+        QColor laserColor(255, 0, 0, 180);
+
+        QPen pen(laserColor);
+
+        pen.setWidth(2);
+
+        painter.setPen(pen);
+
+        painter.drawLine(laser.start, laser.end);
+    }
+
     // 画文明
     for (int i = 0; i < civilizations.size(); i++)
     {
@@ -740,29 +1300,225 @@ void MainWindow::paintEvent(QPaintEvent *)
         if (alpha > 255) alpha = 255;
         if (alpha < 50) alpha = 50;
 
-        // 🌈 根据等级设置颜色
-        switch (c.level)
+        // =========================
+        // 🌌 根据阵营决定颜色
+        // =========================
+
+        if (c.faction == "Blue Alliance")
         {
-        case 1:
-            painter.setBrush(QColor(150, 150, 150, alpha));
-            break;
-
-        case 2:
-            painter.setBrush(QColor(0, 255, 0, alpha));
-            break;
-
-        case 3:
-            painter.setBrush(QColor(255, 0, 0, alpha));
-            break;
-
-        default:
-            painter.setBrush(QColor(255, 255, 255, alpha));
+            painter.setBrush(QColor(80, 160, 255, alpha));
+        }
+        else if (c.faction == "Red Empire")
+        {
+            painter.setBrush(QColor(255, 80, 80, alpha));
+        }
+        else if (c.faction == "Green Union")
+        {
+            painter.setBrush(QColor(80, 255, 120, alpha));
+        }
+        else if (c.faction == "Golden Federation")
+        {
+            painter.setBrush(QColor(255, 220, 80, alpha));
+        }
+        else
+        {
+            painter.setBrush(QColor(200, 200, 200, alpha));
         }
 
         // 🔵 根据生命值决定大小
         int radius = c.life / 12;
         if (radius < 4) radius = 4;
         if (radius > 12) radius = 12;
+
+        // =========================
+        // ✨ 文明光晕
+        // =========================
+
+        QColor glowColor;
+
+        // 根据等级决定光晕颜色
+        switch (c.level)
+        {
+        case 1:
+            glowColor = QColor(180, 180, 180, 40);
+            break;
+
+        case 2:
+            glowColor = QColor(0, 255, 0, 50);
+            break;
+
+        case 3:
+            glowColor = QColor(255, 0, 0, 60);
+            break;
+
+        case 4:
+            glowColor = QColor(180, 0, 255, 70);
+            break;
+
+        case 5:
+            glowColor = QColor(255, 215, 0, 80);
+            break;
+
+        default:
+            glowColor = QColor(255, 255, 255, 40);
+        }
+
+        // 光晕半径
+        int glowRadius = radius + c.level * 4;
+
+        // 无边框
+        painter.setPen(Qt::NoPen);
+
+        // 绘制光晕
+        painter.setBrush(glowColor);
+        // =========================
+        // 🌌 文明外交连线
+        // =========================
+
+        for (int j = i + 1;
+             j < civilizations.size();
+             j++)
+        {
+            const Civilization &other =
+                civilizations[j];
+
+            // 防止越界
+            if (j >= c.relations.size())
+            {
+                continue;
+            }
+
+            int relation =
+                c.relations[j];
+
+            // =========================
+            // 🔵 联盟
+            // =========================
+
+            if (relation > 60)
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(80, 180, 255, 120),
+                        2
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+
+            // =========================
+            // 🔴 敌对
+            // =========================
+
+            else if (relation < -60)
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(255, 60, 60, 120),
+                        2
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+
+            // =========================
+            // 🟡 中立合作
+            // =========================
+
+            else if (relation > 20)
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(255, 220, 80, 60),
+                        1
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+        }
+        // =========================
+        // 🌌 文明疆域范围
+        // =========================
+
+        // 科技 + 人口决定疆域
+        int territoryRadius =
+            40 +
+            c.technology * 8 +
+            c.population / 500;
+
+        // 防止太大
+        if (territoryRadius > 180)
+        {
+            territoryRadius = 180;
+        }
+
+        // =========================
+        // 🌈 阵营颜色疆域
+        // =========================
+
+        QColor territoryColor;
+        int territoryAlpha = c.energy / 3;
+
+        if (territoryAlpha < 20)
+        {
+            territoryAlpha = 20;
+        }
+
+        if (territoryAlpha > 120)
+        {
+            territoryAlpha = 120;
+        }
+
+        if (c.faction == "Blue Alliance")
+        {
+            territoryColor =
+                QColor(80, 160, 255, territoryAlpha);
+        }
+        else if (c.faction == "Red Empire")
+        {
+            territoryColor =
+                QColor(255, 80, 80,territoryAlpha);
+        }
+        else if (c.faction == "Green Union")
+        {
+            territoryColor =
+                QColor(80, 255, 120, territoryAlpha);
+        }
+        else if (c.faction == "Golden Federation")
+        {
+            territoryColor =
+                QColor(255, 220, 80, territoryAlpha);
+        }
+        else
+        {
+            territoryColor =
+                QColor(200, 200, 200, 30);
+        }
+
+        // 绘制疆域
+        painter.setBrush(territoryColor);
+        painter.setPen(Qt::NoPen);
+
+        painter.drawEllipse(
+            c.pos,
+            territoryRadius,
+            territoryRadius
+            );
+        painter.setPen(Qt::NoPen);
+
+        painter.drawEllipse(c.pos, glowRadius, glowRadius);
 
         painter.drawEllipse(c.pos, radius, radius);
     }
@@ -788,23 +1544,82 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.drawText(infoX, infoY,
                          "Selected Civilization");
 
+        painter.drawText(infoX, infoY + 20,
+                         QString("Name: %1")
+                             .arg(c.name));
+
+        painter.drawText(infoX, infoY + 50,
+                         QString("Type: %1")
+                             .arg(c.type));
+
         // =========================
         // 🌍 基础信息
         // =========================
+        painter.drawText(infoX, infoY + 80,
+                         QString("Politics: %1")
+                             .arg(c.politics));
+        painter.drawText(infoX, infoY + 110,
+                         QString("Faction: %1")
+                             .arg(c.faction));
+        // =========================
+        // 🌌 外交关系统计
+        // =========================
 
-        painter.drawText(infoX, infoY + 40,
+        int allyCount = 0;
+        int enemyCount = 0;
+        int neutralCount = 0;
+
+        for (int i = 0; i < c.relations.size(); i++)
+        {
+            // 跳过自己
+            if (i == selectedIndex)
+            {
+                continue;
+            }
+
+            int relation = c.relations[i];
+
+            if (relation > 40)
+            {
+                allyCount++;
+            }
+            else if (relation < -40)
+            {
+                enemyCount++;
+            }
+            else
+            {
+                neutralCount++;
+            }
+        }
+
+        // 🌟 显示统计
+
+        painter.drawText(infoX, infoY + 130,
+                         QString("Allies: %1")
+                             .arg(allyCount));
+
+        painter.drawText(infoX, infoY + 160,
+                         QString("Enemies: %1")
+                             .arg(enemyCount));
+
+        painter.drawText(infoX, infoY + 190,
+                         QString("Neutral: %1")
+                             .arg(neutralCount));
+
+        painter.drawText(infoX, infoY + 240,
                          QString("Population: %1")
                              .arg(c.population));
 
-        painter.drawText(infoX, infoY + 70,
+        painter.drawText(infoX, infoY + 270,
                          QString("Technology: %1")
                              .arg(c.technology));
 
-        painter.drawText(infoX, infoY + 100,
+        painter.drawText(infoX, infoY + 300,
                          QString("Energy: %1")
                              .arg(c.energy));
 
-        painter.drawText(infoX, infoY + 130,
+        painter.drawText(infoX, infoY + 330,
                          QString("Age: %1")
                              .arg(c.age));
 
@@ -812,15 +1627,15 @@ void MainWindow::paintEvent(QPaintEvent *)
         // ⚖️ 社会属性
         // =========================
 
-        painter.drawText(infoX, infoY + 180,
+        painter.drawText(infoX, infoY + 380,
                          QString("Stability: %1")
                              .arg(c.stability));
 
-        painter.drawText(infoX, infoY + 210,
+        painter.drawText(infoX, infoY + 410,
                          QString("Visibility: %1")
                              .arg(c.visibility));
 
-        painter.drawText(infoX, infoY + 240,
+        painter.drawText(infoX, infoY + 440,
                          QString("Aggression: %1")
                              .arg(c.aggression));
 
@@ -828,19 +1643,19 @@ void MainWindow::paintEvent(QPaintEvent *)
         // ⚔️ 军事属性
         // =========================
 
-        painter.drawText(infoX, infoY + 290,
+        painter.drawText(infoX, infoY + 490,
                          QString("Military: %1")
                              .arg(c.military));
 
-        painter.drawText(infoX, infoY + 320,
+        painter.drawText(infoX, infoY + 520,
                          QString("Life: %1")
                              .arg(c.life));
 
-        painter.drawText(infoX, infoY + 350,
+        painter.drawText(infoX, infoY + 550,
                          QString("Speed: %1")
                              .arg(c.speed));
 
-        painter.drawText(infoX, infoY + 380,
+        painter.drawText(infoX, infoY + 580,
                          QString("Level: %1")
                              .arg(c.level));
     }
