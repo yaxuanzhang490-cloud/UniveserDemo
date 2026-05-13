@@ -4,12 +4,119 @@
 #include <QRandomGenerator>
 #include <QTimer>
 #include <QDebug>
+#include <QKeyEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    // =========================
+    // 🌌 外交线控制按钮
+    // =========================
+
+    allianceBox =
+        new QCheckBox("Alliance", this);
+
+    enemyBox =
+        new QCheckBox("Enemy", this);
+
+    neutralBox =
+        new QCheckBox("Neutral", this);
+    connect(allianceBox, &QCheckBox::toggled,
+            this,
+            [=](bool checked)
+            {
+                showAlliance = checked;
+                update();
+            });
+
+    connect(enemyBox, &QCheckBox::toggled,
+            this,
+            [=](bool checked)
+            {
+                showEnemy = checked;
+                update();
+            });
+
+    connect(neutralBox, &QCheckBox::toggled,
+            this,
+            [=](bool checked)
+            {
+                showNeutral = checked;
+                update();
+            });
+
+    // 默认状态
+    allianceBox->setChecked(false);
+    enemyBox->setChecked(false);
+    neutralBox->setChecked(false);
+
+    // =========================
+    // 🌌 按钮样式
+    // =========================
+
+    allianceBox->setStyleSheet(
+        "QCheckBox { color: white; }"
+        "QCheckBox::indicator { width: 15px; height: 15px; }"
+        );
+
+    enemyBox->setStyleSheet(
+        "QCheckBox { color: white; }"
+        "QCheckBox::indicator { width: 15px; height: 15px; }"
+        );
+
+    neutralBox->setStyleSheet(
+        "QCheckBox { color: white; }"
+        "QCheckBox::indicator { width: 15px; height: 15px; }"
+        );
+    // =========================
+    // ⏸️ 暂停按钮
+    // =========================
+
+    pauseButton =
+        new QPushButton("Pause", this);
+
+    pauseButton->setGeometry(width() - 140,
+                             height() - 50,
+                             100,
+                             32);
+
+    pauseButton->setStyleSheet(
+        "QPushButton {"
+        "background-color: rgba(40,40,60,180);"
+        "color: white;"
+        "border: 1px solid gray;"
+        "border-radius: 8px;"
+        "font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: rgba(80,80,120,200);"
+        "}"
+        );
+    connect(pauseButton,
+            &QPushButton::clicked,
+            this,
+            [=]()
+            {
+                isPaused = !isPaused;
+
+                if (isPaused)
+                {
+                    timer->stop();
+
+                    // 🌌 自动导出文明报告
+                    exportCivilizationReport();
+
+                    pauseButton->setText("Resume");
+                }
+                else
+                {
+                    timer->start(100);
+
+                    pauseButton->setText("Pause");
+                }
+            });
     background.load("D:/Qt_code/UniverseDemo/star.png");
     qDebug() << background.isNull();
     resize(1200, 700);    //窗口变宽
@@ -206,8 +313,46 @@ MainWindow::MainWindow(QWidget *parent)
     timer = new QTimer(this);
 
     connect(timer, &QTimer::timeout, this, [=]()
-            {
-                // 每一帧更新文明
+    {
+        // 🌌 宇宙年份增长
+        universeYear++;
+        // 🌌 宇宙纪元系统
+
+        // 🌌 宇宙纪元系统
+
+        if (universeYear < 500)
+        {
+            currentEra = "Ancient Era";
+
+            warModifier = 0.5f;
+            techModifier = 0.7f;
+            resourceModifier = 1.2f;
+        }
+        else if (universeYear < 1500)
+        {
+            currentEra = "Expansion Era";
+
+            warModifier = 1.0f;
+            techModifier = 1.2f;
+            resourceModifier = 1.0f;
+        }
+        else if (universeYear < 3000)
+        {
+            currentEra = "Galactic War Era";
+
+            warModifier = 1.8f;
+            techModifier = 1.0f;
+            resourceModifier = 0.8f;
+        }
+        else
+        {
+            currentEra = "Dark Age";
+
+            warModifier = 0.7f;
+            techModifier = 0.5f;
+            resourceModifier = 0.6f;
+        }
+        // 每一帧更新文明
         for (int i = 0; i < civilizations.size(); i++)
 
         {
@@ -261,7 +406,7 @@ MainWindow::MainWindow(QWidget *parent)
                 // 小概率恢复资源
                 if (QRandomGenerator::global()->bounded(4) == 0)
                 {
-                    p.energy += 2;
+                    p.energy += int(2 * resourceModifier);
 
                     // 资源上限
                     if (p.energy > 400)
@@ -483,7 +628,7 @@ MainWindow::MainWindow(QWidget *parent)
             }
 
             // 🌟 科技发展
-            if (c.age % 200 == 0)
+            if (c.age % int(200 / techModifier) == 0)
             {
                 c.technology++;
 
@@ -687,9 +832,73 @@ MainWindow::MainWindow(QWidget *parent)
                         (a.aggression + b.aggression
                          - a.stability / 3
                          - b.stability / 3);
+                    // 防止关系数组越界
+                    if (j >= a.relations.size() ||
+                        i >= b.relations.size())
+                    {
+                        continue;
+                    }
 
                     int relation =
                         a.relations[j];
+                    // =========================
+                    // 🌌 外交关系自然变化
+                    // =========================
+
+                    // 同阵营更容易友好
+                    if (a.faction == b.faction)
+                    {
+                        a.relations[j] += 1;
+                        b.relations[i] += 1;
+                    }
+                    else
+                    {
+                        // 不同阵营缓慢恶化
+                        if (QRandomGenerator::global()->bounded(5) == 0)
+                        {
+                            a.relations[j] -= 1;
+                            b.relations[i] -= 1;
+                        }
+                    }
+
+                    // 和平文明更容易友善
+                    if (a.type == "Peaceful" ||
+                        b.type == "Peaceful")
+                    {
+                        a.relations[j] += 1;
+                        b.relations[i] += 1;
+                    }
+
+                    // 高侵略文明更容易敌对
+                    if (a.aggression > 70 ||
+                        b.aggression > 70)
+                    {
+                        a.relations[j] -= 1;
+                        b.relations[i] -= 1;
+                    }
+                    // =========================
+                    // 🌌 限制关系值范围
+                    // =========================
+
+                    if (a.relations[j] > 100)
+                    {
+                        a.relations[j] = 100;
+                    }
+
+                    if (a.relations[j] < -100)
+                    {
+                        a.relations[j] = -100;
+                    }
+
+                    if (b.relations[i] > 100)
+                    {
+                        b.relations[i] = 100;
+                    }
+
+                    if (b.relations[i] < -100)
+                    {
+                        b.relations[i] = -100;
+                    }
 
                     if (relation > 40)
                     {
@@ -709,6 +918,7 @@ MainWindow::MainWindow(QWidget *parent)
                     {
                         attackChance = 95;
                     }
+                    attackChance *= warModifier;
 
                     if (QRandomGenerator::global()->bounded(100)
                         < attackChance)
@@ -765,6 +975,15 @@ MainWindow::MainWindow(QWidget *parent)
 
                         // 🌟 胜利收益
                         a.energy += 5;
+
+                        // 🌌 战争日志
+                        eventLogs.append(
+                            QString("[Year %1] ")
+                                .arg(universeYear)
+                            + a.name +
+                            " attacked " +
+                            b.name
+                            );
                     }
                     else
                     {
@@ -792,6 +1011,14 @@ MainWindow::MainWindow(QWidget *parent)
                         b.stability -= 2;
 
                         b.energy += 5;
+
+                        eventLogs.append(
+                            QString("[Year %1] ")
+                                .arg(universeYear)
+                            + b.name +
+                            " attacked " +
+                            a.name
+                            );
                     }
                     }
                 }
@@ -921,6 +1148,12 @@ MainWindow::MainWindow(QWidget *parent)
                 }
 
                 civilizations.append(child);
+                eventLogs.append(
+                    QString("[Year %1] ")
+                        .arg(universeYear)
+                    + child.name +
+                    " was born"
+                    );
             }
 
             // =========================
@@ -992,6 +1225,13 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     selectedIndex--;
                 }
+                // 🌌 文明灭亡日志
+                eventLogs.append(
+                    QString("[Year %1] ")
+                        .arg(universeYear)
+                    + civilizations[i].name +
+                    " collapsed"
+                    );
 
                 civilizations.remove(i);
             }
@@ -1156,6 +1396,19 @@ MainWindow::MainWindow(QWidget *parent)
         for (int i = 0; i < civCount; i++)
         {
             civilizations[i].relations.resize(civCount);
+            for (int j = 0; j < civCount; j++)
+            {
+                if (i == j)
+                {
+                    civilizations[i].relations[j] = 100;
+                }
+                else if (civilizations[i].relations[j] == 0)
+                {
+                    civilizations[i].relations[j] =
+                        QRandomGenerator::global()
+                            ->bounded(-30, 31);
+                }
+            }
 
             for (int j = 0; j < civCount; j++)
             {
@@ -1165,6 +1418,14 @@ MainWindow::MainWindow(QWidget *parent)
                     civilizations[i].relations[j] = 100;
                 }
             }
+        }
+        // =========================
+        // 🌌 限制日志数量
+        // =========================
+
+        while (eventLogs.size() > 12)
+        {
+            eventLogs.removeFirst();
         }
         update();
             });
@@ -1176,6 +1437,130 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+// =========================
+// 🌌 导出文明报告
+// =========================
+void MainWindow::exportCivilizationReport()
+{
+    // 文件名（带时间）
+    QString fileName =
+        QString("D:/Qt_code/UniverseDemo/reports/civilization_report_%1.txt")
+            .arg(QDateTime::currentDateTime()
+                     .toString("yyyyMMdd_hhmmss"));
+
+    QFile file(fileName);
+    // 打开文件
+    if (!file.open(QIODevice::WriteOnly |
+                   QIODevice::Text))
+    {
+        return;
+    }
+
+    QTextStream out(&file);
+    // =========================
+    // 🌌 标题
+    // =========================
+    out << "==============================\n";
+    out << " UNIVERSE CIVILIZATION REPORT \n";
+    out << "==============================\n\n";
+
+    out << "Generated Time: "
+        << QDateTime::currentDateTime()
+               .toString("yyyy-MM-dd hh:mm:ss")
+        << "\n\n";
+    // =========================
+    // 🌍 文明统计
+    // =========================
+    out << "========== CIVILIZATIONS =========="
+        << "\n\n";
+
+    for (int i = 0;
+         i < civilizations.size();
+         i++)
+    {
+        const Civilization &c = civilizations[i];
+
+        out << "Civilization #"
+            << i + 1
+            << "\n";
+
+        out << "Name: "
+            << c.name
+            << "\n";
+
+        out << "Type: "
+            << c.type
+            << "\n";
+
+        out << "Politics: "
+            << c.politics
+            << "\n";
+
+        out << "Faction: "
+            << c.faction
+            << "\n";
+
+        out << "Population: "
+            << c.population
+            << "\n";
+
+        out << "Technology: "
+            << c.technology
+            << "\n";
+
+        out << "Energy: "
+            << c.energy
+            << "\n";
+
+        out << "Military: "
+            << c.military
+            << "\n";
+
+        out << "Stability: "
+            << c.stability
+            << "\n";
+
+        out << "Aggression: "
+            << c.aggression
+            << "\n";
+
+        out << "Life: "
+            << c.life
+            << "\n";
+
+        out << "Level: "
+            << c.level
+            << "\n";
+
+        out << "--------------------------------\n";
+    }
+    // =========================
+    // 🌌 事件日志
+    // =========================
+    out << "\n========== EVENT LOG =========="
+        << "\n\n";
+
+    for (const QString &log : eventLogs)
+    {
+        out << log << "\n";
+    }
+    // =========================
+    // 🌍 总结信息
+    // =========================
+    out << "\n========== SUMMARY =========="
+        << "\n\n";
+
+    out << "Total Civilizations: "
+        << civilizations.size()
+        << "\n";
+
+    out << "Total Events: "
+        << eventLogs.size()
+        << "\n";
+
+    file.close();
+}
+
 void MainWindow::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
@@ -1229,6 +1614,16 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.drawText(width() - 280, 40,
                      "Civilization Monitor");
 
+    // =========================
+    // 🌌 外交线控制提示
+    // =========================
+
+    QFont smallFont;
+    smallFont.setPointSize(9);
+
+    painter.setFont(smallFont);
+
+    painter.setPen(Qt::gray);
     //显示实时文明数量
     QFont normalFont;
     normalFont.setPointSize(10);
@@ -1237,11 +1632,30 @@ void MainWindow::paintEvent(QPaintEvent *)
     QString countText = QString("Civilizations: %1")
                             .arg(civilizations.size());
 
-    painter.drawText(width() - 280, 90, countText);
+    painter.drawText(width() - 280, 115, countText);
+
+    QString yearText =
+        QString("Universe Year: %1")
+            .arg(universeYear);
+    QString eraText =
+        QString("Era: %1")
+            .arg(currentEra);
+
+    painter.drawText(
+        width() - 280,
+        165,
+        eraText
+        );
+
+    painter.drawText(
+        width() - 280,
+        140,
+        yearText
+        );
 
     // 📈 在侧边栏绘制实时文明数量折线图
     int graphX = width() - 280;
-    int graphY = 250;
+    int graphY = 300;
     int graphHeight = 120;
 
     // 边框
@@ -1283,6 +1697,95 @@ void MainWindow::paintEvent(QPaintEvent *)
 
         painter.drawLine(laser.start, laser.end);
     }
+    // =========================
+    // 🌌 先绘制外交线
+    // =========================
+
+    for (int i = 0; i < civilizations.size(); i++)
+    {
+        const Civilization &c = civilizations[i];
+
+        if (c.life <= 0) continue;
+
+        for (int j = i + 1;
+             j < civilizations.size();
+             j++)
+        {
+            const Civilization &other =
+                civilizations[j];
+
+            if (other.life <= 0) continue;
+
+            // 🌌 聚焦模式
+            if (focusMode)
+            {
+                // 只显示与选中文明相关的线
+                if (i != selectedIndex &&
+                    j != selectedIndex)
+                {
+                    continue;
+                }
+            }
+
+            if (j >= c.relations.size())
+            {
+                continue;
+            }
+
+            int relation =
+                c.relations[j];
+
+            // 🔵 联盟
+            if (allianceBox->isChecked() &&
+                relation > 40)
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(80, 180, 255, 120),
+                        2
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+
+            // 🔴 敌对
+            else if (enemyBox->isChecked() &&
+                     relation < -40)
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(255, 60, 60, 120),
+                        2
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+
+            // 🟡 中立
+            else if (neutralBox->isChecked())
+            {
+                painter.setPen(
+                    QPen(
+                        QColor(255, 220, 80, 60),
+                        1
+                        )
+                    );
+
+                painter.drawLine(
+                    c.pos,
+                    other.pos
+                    );
+            }
+        }
+    }
 
     // 画文明
     for (int i = 0; i < civilizations.size(); i++)
@@ -1290,6 +1793,32 @@ void MainWindow::paintEvent(QPaintEvent *)
         const Civilization &c = civilizations[i];
 
         if (c.life <= 0) continue;
+        // =========================
+        // 🌌 聚焦模式
+        // =========================
+
+        if (focusMode)
+        {
+            // 不是被选中文明
+            // 也不是与它有关联的文明
+            if (i != selectedIndex)
+            {
+                bool related = false;
+
+                int relation =
+                    civilizations[selectedIndex].relations[i];
+
+                if (relation != 0)
+                {
+                    related = true;
+                }
+
+                if (!related)
+                {
+                    continue;
+                }
+            }
+        }
 
         // 🌍 根据能源决定亮度
         int alpha =
@@ -1375,79 +1904,7 @@ void MainWindow::paintEvent(QPaintEvent *)
         // 🌌 文明外交连线
         // =========================
 
-        for (int j = i + 1;
-             j < civilizations.size();
-             j++)
-        {
-            const Civilization &other =
-                civilizations[j];
 
-            // 防止越界
-            if (j >= c.relations.size())
-            {
-                continue;
-            }
-
-            int relation =
-                c.relations[j];
-
-            // =========================
-            // 🔵 联盟
-            // =========================
-
-            if (relation > 60)
-            {
-                painter.setPen(
-                    QPen(
-                        QColor(80, 180, 255, 120),
-                        2
-                        )
-                    );
-
-                painter.drawLine(
-                    c.pos,
-                    other.pos
-                    );
-            }
-
-            // =========================
-            // 🔴 敌对
-            // =========================
-
-            else if (relation < -60)
-            {
-                painter.setPen(
-                    QPen(
-                        QColor(255, 60, 60, 120),
-                        2
-                        )
-                    );
-
-                painter.drawLine(
-                    c.pos,
-                    other.pos
-                    );
-            }
-
-            // =========================
-            // 🟡 中立合作
-            // =========================
-
-            else if (relation > 20)
-            {
-                painter.setPen(
-                    QPen(
-                        QColor(255, 220, 80, 60),
-                        1
-                        )
-                    );
-
-                painter.drawLine(
-                    c.pos,
-                    other.pos
-                    );
-            }
-        }
         // =========================
         // 🌌 文明疆域范围
         // =========================
@@ -1521,6 +1978,89 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.drawEllipse(c.pos, glowRadius, glowRadius);
 
         painter.drawEllipse(c.pos, radius, radius);
+        // =========================
+        // 🌌 文明名称标签
+        // =========================
+
+        if (c.level >= 3 ||
+            i == selectedIndex)
+        {
+            painter.setPen(Qt::white);
+
+            QFont nameFont;
+            nameFont.setPointSize(8);
+
+            painter.setFont(nameFont);
+
+            // 名称
+            painter.drawText(
+                c.pos.x() - 35,
+                c.pos.y() - radius - 10,
+                c.name
+                );
+
+            // 等级
+            painter.drawText(
+                c.pos.x() - 15,
+                c.pos.y() - radius - 25,
+                QString("Lv.%1")
+                    .arg(c.level)
+                );
+        }
+    }
+    // =========================
+    // 🌌 事件日志显示
+    // =========================
+
+    painter.setPen(Qt::white);
+
+    QFont logFont;
+    logFont.setPointSize(8);
+
+    painter.setFont(logFont);
+
+    int logX = width() - 280;
+    int logY = 350;
+
+    // 🌌 日志背景框
+    painter.setBrush(QColor(10, 10, 20, 180));
+    painter.setPen(QColor(80, 80, 100));
+
+    painter.drawRect(
+        width() - 290,
+        330,
+        270,
+        180
+        );
+
+    painter.setPen(Qt::white);
+
+    painter.drawText(logX, logY,
+                     "[ EVENT LOG ]");
+
+    // 最多显示10条
+    int start =
+        qMax(0, eventLogs.size() - 10);
+
+    for (int i = start;
+         i < eventLogs.size();
+         i++)
+    {
+        int line =
+            i - start;
+
+        QString text = eventLogs[i];
+
+        if (text.length() > 32)
+        {
+            text = text.left(32) + "...";
+        }
+
+        painter.drawText(
+            logX,
+            logY + 20 + line * 15,
+            text
+            );
     }
 
     // 点击显示信息
@@ -1535,7 +2075,7 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.setFont(infoFont);
 
         int infoX = width() - 280;
-        int infoY = 340;
+        int infoY = 530;
 
         // =========================
         // 🌌 标题
@@ -1544,7 +2084,7 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.drawText(infoX, infoY,
                          "Selected Civilization");
 
-        painter.drawText(infoX, infoY + 20,
+        painter.drawText(infoX, infoY + 30,
                          QString("Name: %1")
                              .arg(c.name));
 
@@ -1555,10 +2095,10 @@ void MainWindow::paintEvent(QPaintEvent *)
         // =========================
         // 🌍 基础信息
         // =========================
-        painter.drawText(infoX, infoY + 80,
+        painter.drawText(infoX, infoY + 70,
                          QString("Politics: %1")
                              .arg(c.politics));
-        painter.drawText(infoX, infoY + 110,
+        painter.drawText(infoX, infoY + 90,
                          QString("Faction: %1")
                              .arg(c.faction));
         // =========================
@@ -1595,31 +2135,31 @@ void MainWindow::paintEvent(QPaintEvent *)
 
         // 🌟 显示统计
 
-        painter.drawText(infoX, infoY + 130,
+        painter.drawText(infoX, infoY + 120,
                          QString("Allies: %1")
                              .arg(allyCount));
 
-        painter.drawText(infoX, infoY + 160,
+        painter.drawText(infoX, infoY + 140,
                          QString("Enemies: %1")
                              .arg(enemyCount));
 
-        painter.drawText(infoX, infoY + 190,
+        painter.drawText(infoX, infoY + 160,
                          QString("Neutral: %1")
                              .arg(neutralCount));
 
-        painter.drawText(infoX, infoY + 240,
+        painter.drawText(infoX, infoY + 180,
                          QString("Population: %1")
                              .arg(c.population));
 
-        painter.drawText(infoX, infoY + 270,
+        painter.drawText(infoX, infoY + 200,
                          QString("Technology: %1")
                              .arg(c.technology));
 
-        painter.drawText(infoX, infoY + 300,
+        painter.drawText(infoX, infoY + 220,
                          QString("Energy: %1")
                              .arg(c.energy));
 
-        painter.drawText(infoX, infoY + 330,
+        painter.drawText(infoX, infoY + 240,
                          QString("Age: %1")
                              .arg(c.age));
 
@@ -1627,15 +2167,15 @@ void MainWindow::paintEvent(QPaintEvent *)
         // ⚖️ 社会属性
         // =========================
 
-        painter.drawText(infoX, infoY + 380,
+        painter.drawText(infoX, infoY + 270,
                          QString("Stability: %1")
                              .arg(c.stability));
 
-        painter.drawText(infoX, infoY + 410,
+        painter.drawText(infoX, infoY + 290,
                          QString("Visibility: %1")
                              .arg(c.visibility));
 
-        painter.drawText(infoX, infoY + 440,
+        painter.drawText(infoX, infoY + 310,
                          QString("Aggression: %1")
                              .arg(c.aggression));
 
@@ -1643,19 +2183,19 @@ void MainWindow::paintEvent(QPaintEvent *)
         // ⚔️ 军事属性
         // =========================
 
-        painter.drawText(infoX, infoY + 490,
+        painter.drawText(infoX, infoY + 340,
                          QString("Military: %1")
                              .arg(c.military));
 
-        painter.drawText(infoX, infoY + 520,
+        painter.drawText(infoX, infoY + 360,
                          QString("Life: %1")
                              .arg(c.life));
 
-        painter.drawText(infoX, infoY + 550,
+        painter.drawText(infoX, infoY + 380,
                          QString("Speed: %1")
                              .arg(c.speed));
 
-        painter.drawText(infoX, infoY + 580,
+        painter.drawText(infoX, infoY + 400,
                          QString("Level: %1")
                              .arg(c.level));
     }
@@ -1667,6 +2207,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     QPoint clickPos = event->pos();
 
     selectedIndex = -1;  // 先清空选择
+    // 🌌 默认关闭聚焦
+    focusMode = false;
 
     for (int i = 0; i < civilizations.size(); i++)
     {
@@ -1681,9 +2223,25 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         if (dist2 <225)
         {
             selectedIndex = i;
+            // 🌌 开启聚焦模式
+            focusMode = true;
             break;
         }
     }
 
     update();  // 触发重绘
+}
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    allianceBox->setGeometry(width() - 280, 70, 80, 25);
+
+    enemyBox->setGeometry(width() - 190, 70, 80, 25);
+
+    neutralBox->setGeometry(width() - 100, 70, 80, 25);
+    pauseButton->setGeometry(width() - 140,
+                             height() - 50,
+                             100,
+                             32);
+
+    QMainWindow::resizeEvent(event);
 }
