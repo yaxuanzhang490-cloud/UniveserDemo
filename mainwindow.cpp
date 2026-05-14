@@ -7,6 +7,8 @@
 #include <QKeyEvent>
 #include <cmath>
 #include <algorithm>
+#include <QDir>
+#include <QCoreApplication>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -66,20 +68,16 @@ MainWindow::MainWindow(QWidget *parent)
     // 🌌 按钮样式
     // =========================
 
-    allianceBox->setStyleSheet(
-        "QCheckBox { color: white; }"
-        "QCheckBox::indicator { width: 15px; height: 15px; }"
-        );
+    QString modernCheckboxStyle = 
+        "QCheckBox { color: rgba(255, 255, 255, 0.9); font-family: 'Segoe UI', system-ui; font-size: 13px; font-weight: 500; }"
+        "QCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(20, 20, 30, 0.5); }"
+        "QCheckBox::indicator:hover { border: 1px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.1); }"
+        "QCheckBox::indicator:checked { background: rgba(80, 150, 255, 0.8); border: 1px solid rgba(80, 150, 255, 1); image: url(none); }";
+        
+    allianceBox->setStyleSheet(modernCheckboxStyle);
+    enemyBox->setStyleSheet(modernCheckboxStyle);
+    neutralBox->setStyleSheet(modernCheckboxStyle);
 
-    enemyBox->setStyleSheet(
-        "QCheckBox { color: white; }"
-        "QCheckBox::indicator { width: 15px; height: 15px; }"
-        );
-
-    neutralBox->setStyleSheet(
-        "QCheckBox { color: white; }"
-        "QCheckBox::indicator { width: 15px; height: 15px; }"
-        );
     // =========================
     // ⏸️ 暂停按钮
     // =========================
@@ -100,14 +98,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     pauseButton->setStyleSheet(
         "QPushButton {"
-        "background-color: rgba(40,40,60,180);"
-        "color: white;"
-        "border: 1px solid gray;"
+        "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(255, 255, 255, 0.1), stop:1 rgba(255, 255, 255, 0.05));"
+        "color: rgba(255, 255, 255, 0.9);"
+        "border: 1px solid rgba(255, 255, 255, 0.15);"
         "border-radius: 8px;"
-        "font-weight: bold;"
+        "font-family: 'Segoe UI', system-ui;"
+        "font-weight: 600;"
+        "font-size: 13px;"
         "}"
         "QPushButton:hover {"
-        "background-color: rgba(80,80,120,200);"
+        "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(255, 255, 255, 0.15), stop:1 rgba(255, 255, 255, 0.1));"
+        "border: 1px solid rgba(255, 255, 255, 0.3);"
+        "}"
+        "QPushButton:pressed {"
+        "background: rgba(255, 255, 255, 0.05);"
         "}"
         );
 
@@ -147,8 +151,11 @@ MainWindow::MainWindow(QWidget *parent)
                     pauseButton->setText("Pause");
                 }
             });
-    background.load("D:/Qt_code/UniverseDemo/star.png");
-    coverImage.load( "D:/Qt_code/UniverseDemo/cover.png");
+    QString appDir = QCoreApplication::applicationDirPath();
+    background.load(appDir + "/star.png");
+    if (background.isNull()) background.load("star.png");
+    coverImage.load(appDir + "/cover.png");
+    if (coverImage.isNull()) coverImage.load("cover.png");
     // =========================
     // 🌌 创建封面粒子
     // =========================
@@ -384,65 +391,41 @@ MainWindow::MainWindow(QWidget *parent)
     timer = new QTimer(this);
     uiTimer = new QTimer(this);
 
-    connect(timer, &QTimer::timeout, this, [=]()
-    {
-
-
-
-        // =========================
-        // 🌌 启动渐变动画
-        // =========================
-
-        if (startingGame)
-        {
-            fadeAlpha += 12;
-
-
-
-            if (fadeAlpha >= 255)
-            {
+    connect(uiTimer, &QTimer::timeout, this, [=]() {
+        // UI Animation Loop at ~60 FPS
+        if (startingGame) {
+            fadeAlpha += 4;
+            if (fadeAlpha >= 255) {
                 fadeAlpha = 255;
-
                 startingGame = false;
-
                 inMenu = false;
-
-                // 🌌 开启宇宙淡入
-
                 fadingIntoUniverse = true;
-                // 🌌 启用UI按钮
+                
                 allianceBox->setEnabled(true);
-
                 enemyBox->setEnabled(true);
-
                 neutralBox->setEnabled(true);
-
                 pauseButton->setEnabled(true);
-
-                fadeAlpha = 255;
+                
                 allianceBox->show();
                 enemyBox->show();
                 neutralBox->show();
                 pauseButton->show();
-                // 🌌 根据速度启动宇宙
-                // 只在 START 时设置一次
-
-
             }
-
-            update();
         }
-        // =========================
-        // 🌌 宇宙淡入动画
-        // =========================
-
-        if (fadingIntoUniverse)
-        {
-            fadeAlpha -= 8;
-
-            if (fadeAlpha < 0)
+        
+        if (fadingIntoUniverse) {
+            fadeAlpha -= 3;
+            if (fadeAlpha <= 0) {
                 fadeAlpha = 0;
+                fadingIntoUniverse = false;
+            }
         }
+        update();
+    });
+    uiTimer->start(16);
+
+    connect(timer, &QTimer::timeout, this, [=]()
+    {
 // 🌌 游戏开始后才更新宇宙
 // =========================
         if (gameStarted)
@@ -1601,8 +1584,11 @@ MainWindow::~MainWindow()
 void MainWindow::exportCivilizationReport()
 {
     // 文件名（带时间）
+    QString reportsDir = QCoreApplication::applicationDirPath() + "/reports";
+    QDir().mkpath(reportsDir);
     QString fileName =
-        QString("D:/Qt_code/UniverseDemo/reports/civilization_report_%1.txt")
+        QString("%1/civilization_report_%2.txt")
+            .arg(reportsDir)
             .arg(QDateTime::currentDateTime()
                      .toString("yyyyMMdd_hhmmss"));
 
@@ -1831,23 +1817,7 @@ void MainWindow::paintEvent(QPaintEvent *)
 
         painter.setPen(Qt::NoPen);
 
-        for (const MenuParticle &p : menuParticles)
-        {
-            painter.setBrush(
-                QColor(
-                    255,
-                    255,
-                    255,
-                    p.alpha
-                    )
-                );
-
-            painter.drawEllipse(
-                p.pos,
-                p.size,
-                p.size
-                );
-        }
+        // 🌌 绘制封面动态粒子 (Removed to fix blue dots bug as requested)
         // =========================
         // 🌠 绘制流星
         // =========================
@@ -1886,45 +1856,45 @@ void MainWindow::paintEvent(QPaintEvent *)
 
         painter.setPen(Qt::white);
 
-        QFont titleFont;
-        int titleSize = width() * 0.025;
+        int titleSize = width() * 0.04;
+        if (titleSize < 32) titleSize = 32;
+        if (titleSize > 80) titleSize = 80;
 
-        if (titleSize < 24)
-        {
-            titleSize = 24;
-        }
-
-        if (titleSize > 48)
-        {
-            titleSize = 48;
-        }
-
-        titleFont.setPointSize(titleSize);
-        titleFont.setBold(true);
-
+        // 使用连笔手写体
+        QFont titleFont("Segoe Script", titleSize, QFont::Bold);
+        titleFont.setItalic(true);
         painter.setFont(titleFont);
 
-        // =========================
-        // 🌌 标题区域
-        // =========================
-
-        // 标题区域高度按窗口比例
         int titleAreaHeight = height() * 0.2;
+        QRect titleRect(0, height() * 0.05, width(), titleAreaHeight);
 
-        // 创建标题区域
-        QRect titleRect(
-            0,
-            height() * 0.05,
-            width(),
-            titleAreaHeight
-            );
+        // =========================
+        // 🌌 手写体书写遮罩动画
+        // =========================
+        QString fullTitle = "Civilization Simulator";
+        QFontMetrics fm(titleFont);
+        int textWidth = fm.horizontalAdvance(fullTitle);
+        int startX = titleRect.center().x() - textWidth / 2;
 
-        // 绘制标题
-        painter.drawText(
-            titleRect,
-            Qt::AlignCenter,
-            "Civilization Simulator"
-            );
+        titleProgress += 2.0; // 每一帧绘制的像素跨度
+        int currentDrawWidth = qMin((int)titleProgress, textWidth + 20);
+
+        painter.save();
+        // 剪裁出逐渐变宽的矩形，模拟从左向右书写的过程
+        painter.setClipRect(0, titleRect.y(), startX + currentDrawWidth, titleRect.height());
+
+        // 发光与主字
+        painter.setPen(QPen(QColor(120, 180, 255, 120)));
+        painter.drawText(titleRect.translated(2, 2), Qt::AlignCenter, fullTitle);
+        painter.setPen(QColor(255, 255, 255, 240));
+        painter.drawText(titleRect, Qt::AlignCenter, fullTitle);
+        
+        painter.restore();
+        
+        // 当标题完全显示后，按钮淡入
+        if (currentDrawWidth >= textWidth) {
+            startButtonAlpha = qMin(255.0, startButtonAlpha + 4.0);
+        }
 
         // =========================
         // 🌌 时间轴
@@ -2055,53 +2025,49 @@ void MainWindow::paintEvent(QPaintEvent *)
             buttonHeight
             );
         // 🌌 是否悬停START按钮
-        bool hoverStart =
-            startButton.contains(mousePos);
+        bool hoverStart = startButton.contains(mousePos);
+        bool pressedStart = hoverStart && (QGuiApplication::mouseButtons() & Qt::LeftButton);
 
         // =========================
-        // 🌌 Start按钮发光
+        // 🌌 Start按钮发光及渐现
         // =========================
+        int alpha = (int)startButtonAlpha;
+        if (alpha > 0) {
+            int currentGlow = hoverStart ? alpha : (startGlow * alpha / 255);
+            QColor glowColor(120, 160, 255, currentGlow);
+            
+            QLinearGradient btnGrad(startButton.topLeft(), startButton.bottomLeft());
+            btnGrad.setColorAt(0.0, QColor(255, 255, 255, hoverStart ? alpha/3 : alpha/8));
+            btnGrad.setColorAt(1.0, QColor(255, 255, 255, hoverStart ? alpha/6 : alpha/15));
 
-        QColor glowColor(
-            180,
-            180,
-            255,
+            painter.setBrush(btnGrad);
+            painter.setPen(QPen(QColor(255, 255, 255, alpha/3), 1));
 
-            hoverStart
-                ? 255
-                : startGlow
-            );
+            QRect drawButton = startButton;
 
-        painter.setBrush(glowColor);
+            if (pressedStart) {
+                drawButton.adjust(2, 2, -2, -2); // Shrink on press
+                painter.setBrush(QColor(100, 140, 255, alpha));
+            } else if (hoverStart) {
+                drawButton.adjust(-8, -4, 8, 4);
+                painter.setBrush(glowColor); // Hover adds full glow
+            } else {
+                painter.setBrush(btnGrad); // Normal state
+            }
 
-        painter.setPen(Qt::NoPen);
+            painter.drawRoundedRect(drawButton, 12, 12);
 
-        QRect drawButton = startButton;
-
-        // 🌌 悬停时放大
-        if (hoverStart)
-        {
-            drawButton.adjust(
-                -12,
-                -6,
-                12,
-                6
-                );
+            QFont startFont("Segoe UI", 16, QFont::Bold);
+            startFont.setLetterSpacing(QFont::AbsoluteSpacing, 6);
+            painter.setFont(startFont);
+            
+            // 文本阴影
+            painter.setPen(QColor(0, 0, 0, alpha/2));
+            painter.drawText(startButton.translated(1, 2), Qt::AlignCenter, "START");
+            // 文本发光
+            painter.setPen(QColor(255, 255, 255, alpha));
+            painter.drawText(startButton, Qt::AlignCenter, "START");
         }
-
-        painter.drawRoundedRect(
-            drawButton,
-            10,
-            10
-            );
-
-        painter.setPen(Qt::white);
-
-        painter.drawText(
-            startButton,
-            Qt::AlignCenter,
-            "START"
-            );
         // =========================
         // 🌌 黑幕渐变
         // =========================
@@ -2129,23 +2095,30 @@ void MainWindow::paintEvent(QPaintEvent *)
 
     for (const ResourcePlanet &p : planets)
     {
-        // ⭐ 资源星球颜色
-        if (p.energy > 50)
-        {
-            painter.setBrush(QColor(0, 150, 255));
-        }
-        else
-        {
-            painter.setBrush(QColor(80, 80, 80));
-        }
-
         // ⭐ 根据资源量决定大小
         int radius = p.energy / 40;
-
         if (radius < 6) radius = 6;
         if (radius > 15) radius = 15;
 
+        // ⭐ 资源星球3D球体光照渲染
+        QColor pColor = p.energy > 50 ? QColor(0, 180, 255) : QColor(100, 100, 110);
+        QRadialGradient planetGrad(p.pos.x() - radius/3.0, p.pos.y() - radius/3.0, radius * 1.5);
+        planetGrad.setColorAt(0.0, Qt::white);
+        planetGrad.setColorAt(0.4, pColor);
+        planetGrad.setColorAt(1.0, QColor(0, 0, 0));
+        
+        painter.setBrush(planetGrad);
+        painter.setPen(Qt::NoPen);
         painter.drawEllipse(p.pos, radius, radius);
+        
+        // 增加行星光晕
+        if (p.energy > 50) {
+            QRadialGradient haloGrad(p.pos, radius * 2.5);
+            haloGrad.setColorAt(0.0, QColor(0, 150, 255, 80));
+            haloGrad.setColorAt(1.0, Qt::transparent);
+            painter.setBrush(haloGrad);
+            painter.drawEllipse(p.pos, radius * 2.5, radius * 2.5);
+        }
     }
 
     //  // 背景拖尾
@@ -2153,9 +2126,22 @@ void MainWindow::paintEvent(QPaintEvent *)
     // painter.setPen(Qt::NoPen);
     // painter.drawRect(rect());
 
-    // 🌌 绘制右侧信息栏背景
-    painter.setBrush(QColor(20, 20, 30, 220));
+    // =========================
+    // 🌟 光标探照灯特效 (Spotlight effect, React-Bits style)
+    // =========================
+    QRadialGradient spotlight(mousePos, 400);
+    spotlight.setColorAt(0.0, QColor(255, 255, 255, 12)); // Subtle ambient light
+    spotlight.setColorAt(1.0, Qt::transparent);
+    painter.setBrush(spotlight);
     painter.setPen(Qt::NoPen);
+    painter.drawRect(rect());
+
+    // 🌌 绘制右侧信息栏背景 (Glassmorphism effect)
+    QLinearGradient sidebarGrad(width() - 300, 0, width(), 0);
+    sidebarGrad.setColorAt(0.0, QColor(15, 15, 25, 190));
+    sidebarGrad.setColorAt(1.0, QColor(25, 25, 40, 240));
+    painter.setBrush(sidebarGrad);
+    painter.setPen(QPen(QColor(255, 255, 255, 20), 1));
     painter.drawRect(width() - 300, 0, 300, height());
 
     //绘制侧边栏标题
@@ -2214,23 +2200,31 @@ void MainWindow::paintEvent(QPaintEvent *)
     int graphHeight = 120;
 
     // 边框
-    painter.setPen(Qt::gray);
-    painter.drawRect(graphX, graphY - graphHeight,
-                     240, graphHeight);
+    painter.setBrush(QColor(255, 255, 255, 5));
+    painter.setPen(QPen(QColor(255, 255, 255, 40), 1));
+    painter.drawRoundedRect(graphX, graphY - graphHeight,
+                     240, graphHeight, 8, 8);
 
-    // 折线
-    painter.setPen(Qt::yellow);
+    // 折线 (带裁剪和滚动)
+    painter.save();
+    painter.setClipRect(graphX, graphY - graphHeight, 240, graphHeight);
+    painter.setPen(QPen(QColor(80, 180, 255), 2));
+    
+    int maxPoints = 240;
+    int startIdx = qMax(0, (int)history.size() - maxPoints);
 
-    for (int i = 1; i < history.size(); i++)
+    for (int i = startIdx + 1; i < history.size(); i++)
     {
-        int x1 = graphX + (i - 1);
+        int idx1 = i - 1 - startIdx;
+        int idx2 = i - startIdx;
+        int x1 = graphX + idx1;
         int y1 = graphY - history[i - 1] * 2;
-
-        int x2 = graphX + i;
+        int x2 = graphX + idx2;
         int y2 = graphY - history[i] * 2;
 
         painter.drawLine(x1, y1, x2, y2);
     }
+    painter.restore();
 
     painter.setPen(Qt::white);
     painter.drawText(graphX, graphY + 20,
@@ -2519,20 +2513,28 @@ void MainWindow::paintEvent(QPaintEvent *)
                 QColor(200, 200, 200, 30);
         }
 
-        // 绘制疆域
-        painter.setBrush(territoryColor);
+        // =========================
+        // 🌟 绘制高级泛光疆域场 (Force Field Effect)
+        // =========================
+        QRadialGradient territoryGrad(c.pos, territoryRadius);
+        QColor tc = territoryColor;
+        territoryGrad.setColorAt(0.0, QColor(tc.red(), tc.green(), tc.blue(), qMin(255, tc.alpha() * 3)));
+        territoryGrad.setColorAt(0.6, QColor(tc.red(), tc.green(), tc.blue(), tc.alpha()));
+        territoryGrad.setColorAt(1.0, Qt::transparent);
+        painter.setBrush(territoryGrad);
+        painter.setPen(QPen(QColor(tc.red(), tc.green(), tc.blue(), 100), 1, Qt::DashLine));
+        painter.drawEllipse(c.pos, territoryRadius, territoryRadius);
+
+        // =========================
+        // 🌟 绘制文明星核发光 (Core Glow Effect)
+        // =========================
+        QRadialGradient coreGrad(c.pos, glowRadius * 1.5);
+        coreGrad.setColorAt(0.0, Qt::white);
+        coreGrad.setColorAt(0.3, QColor(tc.red(), tc.green(), tc.blue(), 255));
+        coreGrad.setColorAt(1.0, Qt::transparent);
         painter.setPen(Qt::NoPen);
-
-        painter.drawEllipse(
-            c.pos,
-            territoryRadius,
-            territoryRadius
-            );
-        painter.setPen(Qt::NoPen);
-
-        painter.drawEllipse(c.pos, glowRadius, glowRadius);
-
-        painter.drawEllipse(c.pos, radius, radius);
+        painter.setBrush(coreGrad);
+        painter.drawEllipse(c.pos, glowRadius * 1.5, glowRadius * 1.5);
         // =========================
         // 🌌 文明名称标签
         // =========================
@@ -2578,14 +2580,15 @@ void MainWindow::paintEvent(QPaintEvent *)
     int logY = 350;
 
     // 🌌 日志背景框
-    painter.setBrush(QColor(10, 10, 20, 180));
-    painter.setPen(QColor(80, 80, 100));
+    painter.setBrush(QColor(10, 10, 20, 160));
+    painter.setPen(QPen(QColor(255, 255, 255, 30), 1));
 
-    painter.drawRect(
+    painter.drawRoundedRect(
         width() - 290,
         330,
         270,
-        180
+        180,
+        8, 8
         );
 
     painter.setPen(Qt::white);
@@ -2629,14 +2632,18 @@ void MainWindow::paintEvent(QPaintEvent *)
     {
         const Civilization &c = civilizations[selectedIndex];
 
-        painter.setPen(Qt::white);
-
-        QFont infoFont;
-        infoFont.setPointSize(10);
-        painter.setFont(infoFont);
-
         int infoX = width() - 280;
         int infoY = 530;
+
+        painter.setBrush(QColor(20, 25, 35, 200));
+        painter.setPen(QPen(QColor(255, 255, 255, 40), 1));
+        painter.drawRoundedRect(infoX - 10, infoY - 20, 260, 440, 8, 8);
+
+        painter.setPen(QColor(240, 240, 255));
+
+        QFont infoFont("Segoe UI", 10);
+        infoFont.setStyleHint(QFont::SansSerif);
+        painter.setFont(infoFont);
 
         // =========================
         // 🌌 标题
@@ -2840,7 +2847,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             50
             );
 
-        if (startButton.contains(clickPos))
+        if (startButton.contains(clickPos) && startButtonAlpha >= 250.0)
         {
             // 🌌 开始启动动画
             startingGame = true;

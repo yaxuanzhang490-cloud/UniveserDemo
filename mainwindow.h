@@ -139,6 +139,8 @@ private:
     QPoint mousePos;
     // 🌌 启动渐变动画
     bool startingGame = false;
+    double titleProgress = 0.0;
+    double startButtonAlpha = 0.0;
 
     // 🌌 黑幕透明度
     int fadeAlpha = 0;
