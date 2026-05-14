@@ -1,2 +1,36 @@
-# UniveserDemo
-Inspired by Liu Cixin's novel The Mirror, this is a C++ course project developed by a freshman engineering student at Nankai University, implementing a simple civilization evolution simulator.
+# 🌌宇宙文明模拟器 (Cosmic Civilization Simulator)
+“给时光以生命，给岁月以文明。” —— 受刘慈欣《镜子》(关于宇宙镜像模拟的终极哲学思考)与太空策略游戏《群星》(复杂的政体设定与宏观叙事)启发，本项目是一个基于 Qt 框架开发的宏观宇宙文明演化模拟器。
+
+📖 项目简介
+
+本项目利用 Agent-based Modeling (个体建模) 思想，在二维平面内构建了一个充满竞争与演化的微型宇宙。通过量化文明的暴露度、科技等级、军事实力和能源储备，模拟了在“黑暗森林”法则下，不同政治制度的文明如何进行扩张、外交、战争直至消亡的动态过程。
+
+✨ 核心功能
+
+多维文明建模：各文明具备独立的政体、科技、能源及属性。
+
+黑暗森林探测机制：文明间的发现基于距离、探测半径及目标文明的“暴露度”。
+
+动态外交矩阵：实时演化的文明关系网（Alliance / Enemy / Neutral），支持可视化连线切换。
+
+宇宙纪元系统：随时间推移自动更迭纪元，动态修正全局生存环境(资源丰度与侵略性系数)。
+
+粒子视觉反馈：内置粒子渲染引擎，平滑呈现星际战争与演化细节。
+
+时间控制：支持模拟速度的动态调节（1x ~ 4x）及全局暂停。
+
+🛠️ 技术实现
+
+核心架构：基于 Qt 的信号槽机制与 QTimer 驱动的物理步进引擎。
+
+数据一致性：采用倒序遍历算法处理文明灭绝逻辑，确保多维外交关系矩阵在动态删除时的内存安全与索引对齐。
+
+渲染引擎：利用 QPainter 绘制抗锯齿图形及渐变色粒子，实现“宇宙感”的 UI 交互。
+
+随机动力学：引入 QRandomGenerator 模拟技术爆炸、文明突变及战争结果的不可预测性。
+
+🚀环境要求
+
+Qt 6.x (推荐 6.4.2+)
+
+C++ 17 兼容编译器 (MSVC 2019+ / MinGW / GCC)
