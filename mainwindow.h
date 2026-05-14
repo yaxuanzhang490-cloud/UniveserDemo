@@ -34,6 +34,8 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
     Ui::MainWindow *ui;
@@ -84,7 +86,68 @@ private:
     float techModifier = 1.0f;
     float resourceModifier = 1.0f;
     QTimer *timer;
+    QTimer *uiTimer;
     QPixmap background;
+    QPixmap coverImage;
+    // =========================
+    // 🌌 封面动态粒子
+    // =========================
+
+    struct MenuParticle
+    {
+        QPointF pos;
+
+        float speedX;
+        float speedY;
+
+        int size;
+
+        int alpha;
+        int alphaDirection;
+    };
+
+    QVector<MenuParticle> menuParticles;
+    // =========================
+    // 🌠 流星系统
+    // =========================
+
+    struct Meteor
+    {
+        QPointF pos;
+
+        float speedX;
+        float speedY;
+
+        int life;
+    };
+
+    QVector<Meteor> meteors;
+    // 🌌 时间速度控制
+    float timeSpeed = 1.0f;
+
+    // 🌌 星云动态偏移
+    float nebulaOffset = 0;
+
+    // 🌌 滑块比例位置（0.0 ~ 1.0）
+    float sliderRatio = 0.5f;
+
+    // 🌌 是否正在拖动滑块
+    bool draggingSlider = false;
+    // 🌌 游戏是否正式开始
+    bool gameStarted = false;
+    // 🌌 鼠标当前位置
+    QPoint mousePos;
+    // 🌌 启动渐变动画
+    bool startingGame = false;
+
+    // 🌌 黑幕透明度
+    int fadeAlpha = 0;
+    // 🌌 Start按钮呼吸光效
+    int startGlow = 120;
+
+    int glowDirection = 1;
+    // 🌌 宇宙淡入动画
+    bool fadingIntoUniverse = false;
     // 🌌 外交线控制按钮
     QCheckBox *allianceBox;
     QCheckBox *enemyBox;
@@ -119,6 +182,8 @@ private:
     QStringList eventLogs;
     // 🌌 聚焦模式（只显示选中文明关系）
     bool focusMode = false;
+    // 🌌 是否处于启动菜单
+    bool inMenu = true;
     // 🌌 导出文明记录
     void exportCivilizationReport();
 };
